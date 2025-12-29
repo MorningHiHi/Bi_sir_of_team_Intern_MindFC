@@ -1,4 +1,3 @@
-
 from fastapi import HTTPException,Depends
 from sqlalchemy.orm import Session
 from crud import crud
@@ -32,9 +31,29 @@ def create_new_admin(user: UserCreate, db: Session = Depends(get_db)):
     return crud.create_user(db, user)
 
 
-def get_list_user(text_search:str=None,current_user = Depends(get_current_user), offset_limit=Depends(get_offset_limit)):
+def create_new_user(user: UserCreate,current_user):
     db = DatabaseApi(current_user)
-    offset,limit=offset_limit
+    result =db.create_Newuser(user)
+    return result
+
+
+def list_info_user(current_user= Depends(get_current_user)):
+    db = DatabaseApi(current_user)
+    return db.get_info_user()
+
+def put_update_user(text_search:str, user: UserBase,curent_user = Depends(get_current_user)):
+    db=DatabaseApi(curent_user)
+    return db.put_update_user(text_search,user)
+
+def del_delete_user(text_search:str,curent_user = Depends(get_current_user)):
+    db=DatabaseApi(curent_user)
+    return db.del_delete_user(text_search)
+
+
+#get_current_user dùng để xác thực người dùng 
+def get_list_user(text_search:str=None,current_user = Depends(get_current_user), offset_limit=Depends(get_offset_limit)):
+    db = DatabaseApi(current_user)#nhận dữ liệu của DB
+    offset,limit=offset_limit#lấp 
     data, total = db.get_list_user(offset,limit,text_search)
     if not data:
         raise HTTPException(status_code=404, detail="No users found")

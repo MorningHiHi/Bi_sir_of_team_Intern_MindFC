@@ -1,3 +1,4 @@
+"""phần này là DTO nhận dữ liệu gốc từ client và lưu trữ tạm, trước khi thực hiện các bước chuyển đổi"""
 from pydantic import BaseModel
 from typing import Optional
 from .general import ListGeneral,ID_NAME
@@ -11,6 +12,11 @@ class UserCreate(UserBase):
 
 class UserResponse(UserBase):
     id: int
+
+class UpdateUser(UserBase):
+    id:str=None
+    username:str ="admin"
+    password : str = "admin"
 
 class LoginRequest(BaseModel):
     username: str="admin"
