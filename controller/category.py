@@ -14,7 +14,7 @@ from schemas.category_schema import IDN,CreateIDN,IdIDN
 
 def create_category(data:CreateIDN,current_user=Depends(get_current_user)):
     db=databaseCategory(current_user)
-    result= db.create_category(data)
+    result= db.create_category(data.name)
     return result
 
 def get_list_Category(text_search:str=None,current_user = Depends(get_current_user), offset_limit=Depends(get_offset_limit)):
@@ -28,11 +28,11 @@ def get_list_Category(text_search:str=None,current_user = Depends(get_current_us
 
 def put_update_Category(data:IDN,curent_user = Depends(get_current_user)):
     db=databaseCategory(curent_user)
-    return db.put_update_category(data)
+    return db.put_update_category(data.name,data.id)
 
 def del_delete_category(text_search:IdIDN,current_user = Depends(get_current_user)):
     db=databaseCategory(current_user)
-    return db.del_delete_category(text_search)
+    return db.del_delete_category(text_search.id)
 
 def categoryById(data:str,current_user):
     db=databaseCategory(current_user)

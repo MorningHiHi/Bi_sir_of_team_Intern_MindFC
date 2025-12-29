@@ -21,16 +21,16 @@ def get_list_product(text_search:str=None,current_user = Depends(get_current_use
 
 def create_product(input:Product,current_user):
     db = DatabaseProduct(current_user)
-    result =db.create_product(input)
+    result =db.create_product(input.name,input.price,input.category.id,input.description)
     return result
 
 def put_update_product(input: Product,current_user ):
     db=DatabaseProduct(current_user)
-    return db.put_update_Product(input)
+    return db.put_update_Product(input.id,input.name,input.price,input.category.id,input.description)
 
 def del_delete_product(text_search:Product,current_user):
     db=DatabaseProduct(current_user)
-    return db.del_delete_product(text_search)
+    return db.del_delete_product(text_search.id)
 
 def getById(id:str,current_user):
     db=DatabaseProduct(current_user)

@@ -6,6 +6,7 @@ import shutil
 import os
 from fastapi import HTTPException, Depends
 from datetime import datetime, timedelta
+from uuid import UUID
 import uuid
 from schemas.category_schema import CreateIDN,IDN,IdIDN
 
@@ -16,10 +17,10 @@ class databaseCategory:
         self.db: Session = db
         self.user = token_data
 
-    def create_category(self, data: CreateIDN):
+    def create_category(self, data:str):
         existing = (
             self.db.query(models.Category)
-            .filter((models.Category.name == data.name))
+            .filter((models.Category.name == data))
             .first()
         )
         if existing:
@@ -27,7 +28,7 @@ class databaseCategory:
         else:
             new_cate = models.Category(
                 id=uuid.uuid4(),
-                name=data.name,
+                name=data,
             )
             self.db.add(new_cate)
             self.db.commit()
@@ -62,11 +63,11 @@ class databaseCategory:
         return rc, total
 
 
-    def put_update_category(self,dataNew:IDN):
-        data = self.db.query(models.Category).filter(models.Category.id==dataNew.id).first()
+    def put_update_category(self,dataNew:str,iid:UUID):
+        data = self.db.query(models.Category).filter(models.Category.id==iid).first()
         if not data :
             raise HTTPException(status_code=404, detail="Category not found")
-        data.name = dataNew.name
+        data.name = dataNew
         self.db.add(data)
         self.db.commit()
         self.db.refresh(data)
@@ -75,8 +76,8 @@ class databaseCategory:
             "name":data.name
         }
     
-    def del_delete_category(self,text_search: IdIDN):
-        data = self.db.query(models.Category).filter(models.Category.id==text_search.id).first()
+    def del_delete_category(self,text_search: UUID):
+        data = self.db.query(models.Category).filter(models.Category.id==text_search).first()
         if not data :
             raise HTTPException(status_code=404, detail="Category not found")
         self.db.delete(data)

@@ -7,6 +7,7 @@ import shutil
 import os
 from fastapi import HTTPException, Depends
 from datetime import datetime, timedelta
+from uuid import UUID
 import uuid
 
 """
@@ -50,15 +51,16 @@ class DatabaseProduct:
         ]  # rc sẽ là một mảng có các bảng ghi là json
         return rc, total
 
-    def create_product(self, input: Product):
+    def create_product(self, iname:str,iprice:int,icate_id:UUID,idescription:str=None):
         existing = (
             self.db.query(models.Category)
-            .filter((models.Category.id == input.category.id))
+            .filter((models.Category.id == icate_id))
             .first()
         )
         # kiểm tra người đã tồn tại hay chưa
         if not existing:
             raise HTTPException(status_code=400, detail="Category ID is required")
+        
         # existing = (
         #     self.db.query(models.Product)
         #     .filter((models.Product.id == input.id))
@@ -69,10 +71,10 @@ class DatabaseProduct:
 
         new_prod = models.Product(
             id=uuid.uuid4(),
-            name=input.name,
-            description=input.description,
-            price=input.price,
-            Category_id=input.category.id,
+            name= iname,
+            description=idescription,
+            price=iprice,
+            Category_id=icate_id,
         )
         self.db.add(new_prod)
         self.db.commit()
@@ -82,53 +84,68 @@ class DatabaseProduct:
             "name": new_prod.name,
             "description": new_prod.description,
             "price": new_prod.price,
-            "category": {"id": input.category.id, "name": input.category.name},
+            "category": {"id": icate_id, "name": existing.name},
         }  # đoạn này name chưa trả về name thật trong bảng đc xử lý sau nhé
 
-    def put_update_Product(self, input: Product):
+    # Cần thêm tham số product_id để biết sửa ai
+    def put_update_Product(self, product_id: UUID, iname: str, iprice: int, icate_id: UUID, idescription: str = None):
+        # 1. Tìm sản phẩm cần sửa (Thay input.id bằng product_id)
         data = (
             self.db.query(models.Product)
             .options(joinedload(models.Product.category))
-            .filter(models.Product.id == input.id)
+            .filter(models.Product.id == product_id)
             .first()
         )
         if not data:
             raise HTTPException(status_code=404, detail="Product not found")
 
-        update_data = input.model_dump(exclude_unset=True)
-        if "id" in update_data:
-            del update_data["id"]
-
-        # Loại bỏ 'category' object nếu có (vì ta update qua category_id)
-        # Nếu schema input của bạn có lồng object category, phải xử lý riêng category_id
-        if "category" in update_data:
-            # Nếu logic của bạn cho phép đổi danh mục:
-            existing = self.db.query(models.Category).filter(
-                models.Category.id == input.category.id
+        # 2. Xử lý Category (Thay input.category.id bằng icate_id)
+        # Logic: Kiểm tra xem ID danh mục mới có tồn tại không
+        if icate_id:
+            existing_cate = self.db.query(models.Category).filter(
+                models.Category.id == icate_id
             ).first()
-            if not existing:
+            
+            if not existing_cate:
                 raise HTTPException(status_code=400, detail="New Category not found")
-            data.category_id = input.category.id
-            del update_data["category"]
+            
+            # Gán ID mới vào data
+            data.Category_id = icate_id
+            # Lưu tên category để lát nữa return cho đúng (vì icate_id chỉ là số UUID)
+            cate_name_for_return = existing_cate.name
+        else:
+            # Nếu không truyền icate_id, giữ nguyên cái cũ
+            cate_name_for_return = data.category.name if data.category else None
 
-        # 3. Vòng lặp update tự động (Dynamic Update)
-        # key: tên cột (name, price...), value: giá trị mới
-        for key, value in update_data.items():
-            # setattr(obj, name, value) tương đương với product_db.name = value
-            setattr(data, key, value)
+        # 3. Update các trường còn lại (Thay vòng lặp dynamic bằng gán trực tiếp)
+        # Vì giờ ta nhận tham số rời, gán trực tiếp sẽ nhanh và chuẩn hơn
+        if iname is not None:
+            data.name = iname
+        if iprice is not None:
+            data.price = iprice
+        if idescription is not None:
+            data.description = idescription
+
+        # 4. Lưu và Refresh
         self.db.add(data)
         self.db.commit()
         self.db.refresh(data)
+
+        # 5. Return kết quả
         return {
             "id": str(data.id),
             "name": data.name,
             "description": data.description,
             "price": data.price,
-            "category": {"id": input.category.id, "name": input.category.name},
+            # Trả về thông tin category mới nhất
+            "category": {
+                "id": str(data.Category_id), 
+                "name": cate_name_for_return
+            },
         }
     
-    def del_delete_product(self,input:Product):
-        data = self.db.query(models.Product).filter(models.Product.id==input.id).first()
+    def del_delete_product(self,input:UUID):
+        data = self.db.query(models.Product).filter(models.Product.id==input).first()
         if not data :
             raise HTTPException(status_code=404, detail="User not found")
         self.db.delete(data)

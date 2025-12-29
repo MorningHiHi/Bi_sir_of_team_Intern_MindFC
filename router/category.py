@@ -24,7 +24,7 @@ def updateCategory(data:IDN ,current_user = Depends(utils.get_current_user)):
 
 @router.delete("/deleteCategory")
 def deleteCategory(text:IdIDN, current_user = Depends(category.get_current_user)):
-    return category.del_delete_category(text,curent_user=current_user)
+    return category.del_delete_category(text,current_user)
 
 @router.get("/get_category_byId",response_model=IDN)
 def get_category_byId(data:str,current_user=Depends(utils.get_current_user)):
